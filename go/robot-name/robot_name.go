@@ -13,12 +13,14 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 var maximumUniqueNames = 26 * 26 * 10 * 10 * 10
 
+// Robot struct to keep robot name
 type Robot struct {
 	name string
 }
 
 var generatedNames = make(map[string]bool)
 
+// Name generates random name if not set
 func (r *Robot) Name() (string, error) {
 	if r.name == "" {
 		name, err := generateName()
@@ -31,6 +33,7 @@ func (r *Robot) Name() (string, error) {
 	return r.name, nil
 }
 
+// Reset resets Robot name
 func (r *Robot) Reset() {
 	// delete(generatedNames, r.name)
 	r.name = ""
