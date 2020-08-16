@@ -23,19 +23,21 @@ type Robot struct {
 
 // Name generates random name if not set
 func (r *Robot) Name() (string, error) {
-	if r.name == "" {
-		if len(usedNames) == maximumUniqueNames {
-			return "", errors.New("no more unique names available")
-		}
-
-		name := generateRandomName()
-		for usedNames[name] {
-			name = generateRandomName()
-		}
-
-		usedNames[name] = true
-		r.name = name
+	if len(r.name) > 0 {
+		return r.name, nil
 	}
+
+	if len(usedNames) == maximumUniqueNames {
+		return "", errors.New("no more unique names available")
+	}
+
+	name := generateRandomName()
+	for usedNames[name] {
+		name = generateRandomName()
+	}
+
+	usedNames[name] = true
+	r.name = name
 	return r.name, nil
 }
 
