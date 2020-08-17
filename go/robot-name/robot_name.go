@@ -11,10 +11,7 @@ import (
 
 var maximumUniqueNames = 26 * 26 * 10 * 10 * 10
 var usedNames = make(map[string]bool)
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // Robot struct to keep robot name
 type Robot struct {
@@ -47,8 +44,8 @@ func (r *Robot) Reset() {
 }
 
 func generateRandomName() string {
-	c1 := rune('A' + rand.Intn(26))
-	c2 := rune('A' + rand.Intn(26))
-	number := rand.Intn(1000)
+	c1 := rune('A' + random.Intn(26))
+	c2 := rune('A' + random.Intn(26))
+	number := random.Intn(1000)
 	return fmt.Sprintf("%c%c%03d", c1, c2, number)
 }
