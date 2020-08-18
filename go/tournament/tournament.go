@@ -38,6 +38,7 @@ func (t *teamStat) points() int {
 	return t.wins*3 + t.draws
 }
 
+// Tally reads match results from reader, converts it to table format and writes to writer
 func Tally(reader io.Reader, writer io.Writer) error {
 	input, err := ioutil.ReadAll(reader)
 	if err != nil {
