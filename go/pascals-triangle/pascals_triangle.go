@@ -4,15 +4,17 @@ package pascal
 
 // Triangle given a number n returns n-depth Pascal's Triangle
 func Triangle(n int) [][]int {
-	t := make([][]int, n)
-	t[0] = []int{1}
-	for i := 1; i < n; i++ {
-		t[i] = getRow(t[i-1])
+	if n == 1 {
+		return [][]int{{1}}
 	}
+
+	t := Triangle(n - 1)
+	r := row(n, t[n-2])
+	t = append(t, r)
 	return t
 }
 
-func getRow(p []int) []int {
+func row(n int, p []int) []int {
 	l := len(p) + 1
 	r := make([]int, l)
 	r[0], r[l-1] = 1, 1
