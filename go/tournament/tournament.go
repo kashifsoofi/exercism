@@ -3,12 +3,11 @@
 package tournament
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sort"
-	"strings"
 )
 
 type teamStat struct {
@@ -40,13 +39,7 @@ func (t *teamStat) points() int {
 
 // Tally reads match results from reader, converts it to table format and writes to writer
 func Tally(reader io.Reader, writer io.Writer) error {
-	input, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return errors.New("error reading input")
-	}
-
-	resultLines := strings.Split(string(input), "\n")
-	stats, err := parseResults(resultLines)
+	stats, err := parseResults(reader)
 	if err != nil {
 		return err
 	}
@@ -66,16 +59,19 @@ func Tally(reader io.Reader, writer io.Writer) error {
 	return nil
 }
 
-func parseResults(results []string) ([]*teamStat, error) {
+func parseResults(reader io.Reader) ([]*teamStat, error) {
 	m := make(map[string]*teamStat)
 
-	for _, r := range results {
-		if len(r) == 0 || strings.HasPrefix(r, "#") {
-			continue
+	r := csv.NewReader(reader)
+	r.Comma = ';'
+	r.Comment = '#'
+	r.FieldsPerRecord = 3
+	for {
+		values, err := r.Read()
+		if err == io.EOF {
+			break
 		}
-
-		values := strings.Split(r, ";")
-		if len(values) != 3 {
+		if err != nil {
 			return nil, errors.New("invalid result")
 		}
 
@@ -99,15 +95,12 @@ func parseResults(results []string) ([]*teamStat, error) {
 		case "win":
 			s1.addWin()
 			s2.addLoss()
-			break
 		case "loss":
 			s1.addLoss()
 			s2.addWin()
-			break
 		case "draw":
 			s1.addDraw()
 			s2.addDraw()
-			break
 		default:
 			return nil, errors.New("invalid result")
 		}
