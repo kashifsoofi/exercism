@@ -11,67 +11,67 @@ public class ForthTests
         Assert.Equal("1 2 3 4 5", Forth.Evaluate(new[] { "1 2 3 4 5" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_can_add_two_numbers()
     {
         Assert.Equal("3", Forth.Evaluate(new[] { "1 2 +" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "+" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 +" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Subtraction_can_subtract_two_numbers()
     {
         Assert.Equal("-1", Forth.Evaluate(new[] { "3 4 -" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Subtraction_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "-" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Subtraction_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 -" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiplication_can_multiply_two_numbers()
     {
         Assert.Equal("8", Forth.Evaluate(new[] { "2 4 *" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiplication_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "*" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiplication_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 *" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division_can_divide_two_numbers()
     {
         Assert.Equal("4", Forth.Evaluate(new[] { "12 3 /" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division_performs_integer_division()
     {
         Assert.Equal("2", Forth.Evaluate(new[] { "8 3 /" }));
@@ -83,25 +83,25 @@ public class ForthTests
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "4 0 /" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "/" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 /" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Combined_arithmetic_addition_and_subtraction()
     {
         Assert.Equal("-1", Forth.Evaluate(new[] { "1 2 + 4 -" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Combined_arithmetic_multiplication_and_division()
     {
         Assert.Equal("2", Forth.Evaluate(new[] { "2 4 * 3 /" }));
