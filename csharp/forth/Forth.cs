@@ -5,22 +5,18 @@ using Sprache;
 
 public static class Forth
 {
-    private static readonly Parser<char> Delimiter = Parse.Char(' ');
-    private static readonly Parser<string> Word = Parse.CharExcept(' ').Many().Text();
-    private static readonly Parser<IEnumerable<string>> Words = Word.DelimitedBy(Delimiter);
-    private static readonly Parser<int> IntNumber = Parse.Number.Select(int.Parse);
+    private static class Grammer
+    {
+        private static readonly Parser<char> Color = Parse.Char(':').Token();
+        private static readonly Parser<char> SemiColon = Parse.Char(';').Token();
+        private static readonly Parser<char> Space = Parse.Char(' ');
 
-    private static readonly Parser<string> Plus = Parse.IgnoreCase("+").Text();
-    private static readonly Parser<string> Minus = Parse.IgnoreCase("-").Text();
-    private static readonly Parser<string> Multiply = Parse.IgnoreCase("*").Text();
-    private static readonly Parser<string> Divide = Parse.IgnoreCase("/").Text();
-    private static readonly Parser<string> Duplicate = Parse.IgnoreCase("dup").Text();
-    private static readonly Parser<string> Drop = Parse.IgnoreCase("drop").Text();
-    private static readonly Parser<string> Swap = Parse.IgnoreCase("swap").Text();
-    private static readonly Parser<string> Over = Parse.IgnoreCase("over").Text();
+        private static readonly Parser<string> Word = Parse.CharExcept(' ').Many().Text();
 
-    private static readonly Parser<string> Operator = 
-        Plus.Or(Minus).Or(Multiply).Or(Divide).Or(Duplicate).Or(Drop).Or(Swap).Or(Over);
+        public static readonly Parser<int> IntNumber = Parse.Number.Select(int.Parse);
+
+        public static readonly Parser<IEnumerable<string>> Tokens = Word.DelimitedBy(Space);
+    }
 
     private delegate int[] OperationAction(params int[] arguments);
     private delegate void EvaluateAction(Stack<int> values);
@@ -74,17 +70,16 @@ public static class Forth
 
         foreach (var instruction in instructions)
         {
-            var words = Words.Parse(instruction);
-            foreach (var word in words)
+            var tokens = Grammer.Tokens.Parse(instruction).ToList();
+            foreach (var token in tokens)
             {
-                var op = Operator.TryParse(word);
-                if (op.WasSuccessful)
+                if (evaluateActions.ContainsKey(token.ToLower()))
                 {
-                    evaluateActions[op.Value.ToString()](values);
+                    evaluateActions[token.ToLower()](values);
                 }
-                else 
+                else
                 {
-                var result = IntNumber.TryParse(word);
+                var result = Grammer.IntNumber.TryParse(token);
                 if (result.WasSuccessful)
                 {
                     values.Push(result.Value);
