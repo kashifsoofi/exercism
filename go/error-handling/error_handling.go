@@ -10,6 +10,7 @@ func Use(ro ResourceOpener, input string) (err error) {
 		}
 		res, err = ro()
 	}
+	defer res.Close()
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -18,11 +19,9 @@ func Use(ro ResourceOpener, input string) (err error) {
 			}
 			err = r.(error)
 		}
-
-		res.Close()
 	}()
 
 	res.Frob(input)
 
-	return
+	return nil
 }
