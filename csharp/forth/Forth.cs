@@ -5,28 +5,31 @@ using Sprache;
 
 public static class Forth
 {
-    internal static readonly Parser<char> Delimiter = Parse.Char(' ');
-    internal static readonly Parser<string> Word = Parse.CharExcept(' ').Many().Text();
-    internal static readonly Parser<IEnumerable<string>> Words = Word.DelimitedBy(Delimiter);
-    internal static readonly Parser<int> IntNumber = Parse.Number.Select(int.Parse);
+    private static readonly Parser<char> Delimiter = Parse.Char(' ');
+    private static readonly Parser<string> Word = Parse.CharExcept(' ').Many().Text();
+    private static readonly Parser<IEnumerable<string>> Words = Word.DelimitedBy(Delimiter);
+    private static readonly Parser<int> IntNumber = Parse.Number.Select(int.Parse);
 
-    internal static readonly Parser<char> ArithmeticOperator = Parse.Chars(new char[]{'+', '-', '*', '/'});
+    private static readonly Parser<string> Plus = Parse.IgnoreCase("+").Text();
+    private static readonly Parser<string> Minus = Parse.IgnoreCase("-").Text();
+    private static readonly Parser<string> Multiply = Parse.IgnoreCase("*").Text();
+    private static readonly Parser<string> Divide = Parse.IgnoreCase("/").Text();
+    private static readonly Parser<string> Duplicate = Parse.IgnoreCase("dup").Text();
+    private static readonly Parser<string> Drop = Parse.IgnoreCase("drop").Text();
+    private static readonly Parser<string> Swap = Parse.IgnoreCase("swap").Text();
+    private static readonly Parser<string> Over = Parse.IgnoreCase("over").Text();
 
-    internal delegate int OperationAction(params int[] arguments);
+    private static readonly Parser<string> Operator = 
+        Plus.Or(Minus).Or(Multiply).Or(Divide).Or(Duplicate).Or(Drop).Or(Swap).Or(Over);
 
-    internal static readonly Dictionary<string, OperationAction> actions = new Dictionary<string, OperationAction>
+    private delegate int OperationAction(params int[] arguments);
+    private delegate void EvaluateAction(Stack<int> values);
+    private static readonly Dictionary<string, EvaluateAction> evaluateActions = new Dictionary<string, EvaluateAction>
     {
-        ["+"] = (args) =>  { return args[0] + args[1]; },
-        ["-"] = (args) =>  { return args[0] - args[1]; },
-        ["*"] = (args) =>  { return args[0] * args[1]; },
-        ["/"] = (args) =>
-                    {
-                        if (args[1] == 0)
-                        {
-                            throw new InvalidOperationException();
-                        }
-                        return args[0] / args[1];
-                    },
+        ["+"] = (values) => Binary(values, x => x[0] + x[1]),
+        ["-"] = (values) => Binary(values, x => x[0] - x[1]),
+        ["*"] = (values) => Binary(values, x => x[0] * x[1]),
+        ["/"] = (values) => Binary(values, x => x[1] == 0 ? throw new InvalidOperationException() : x[0] / x[1]),
     };
 
     private static void Binary(Stack<int> values, OperationAction op)
@@ -53,18 +56,18 @@ public static class Forth
             var words = Words.Parse(instruction);
             foreach (var word in words)
             {
-                var op = ArithmeticOperator.TryParse(word);
+                var op = Operator.TryParse(word);
                 if (op.WasSuccessful)
                 {
-                    Binary(values, actions[op.Value.ToString()]);
+                    evaluateActions[op.Value.ToString()](values);
                 }
-                else
+                else 
                 {
-                    var result = IntNumber.TryParse(word);
-                    if (result.WasSuccessful)
-                    {
-                        values.Push(result.Value);
-                    }
+                var result = IntNumber.TryParse(word);
+                if (result.WasSuccessful)
+                {
+                    values.Push(result.Value);
+                }
                 }
             }
         }

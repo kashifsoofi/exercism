@@ -77,7 +77,7 @@ public class ForthTests
         Assert.Equal("2", Forth.Evaluate(new[] { "8 3 /" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division_errors_if_dividing_by_zero()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "4 0 /" }));
