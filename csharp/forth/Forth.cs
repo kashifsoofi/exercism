@@ -22,14 +22,18 @@ public static class Forth
     private static readonly Parser<string> Operator = 
         Plus.Or(Minus).Or(Multiply).Or(Divide).Or(Duplicate).Or(Drop).Or(Swap).Or(Over);
 
-    private delegate int OperationAction(params int[] arguments);
+    private delegate int[] OperationAction(params int[] arguments);
     private delegate void EvaluateAction(Stack<int> values);
     private static readonly Dictionary<string, EvaluateAction> evaluateActions = new Dictionary<string, EvaluateAction>
     {
-        ["+"] = (values) => Binary(values, x => x[0] + x[1]),
-        ["-"] = (values) => Binary(values, x => x[0] - x[1]),
-        ["*"] = (values) => Binary(values, x => x[0] * x[1]),
-        ["/"] = (values) => Binary(values, x => x[1] == 0 ? throw new InvalidOperationException() : x[0] / x[1]),
+        ["+"] = (values) => Binary(values, x => new[] { x[0] + x[1] }),
+        ["-"] = (values) => Binary(values, x => new[] { x[0] - x[1] }),
+        ["*"] = (values) => Binary(values, x => new[] { x[0] * x[1] }),
+        ["/"] = (values) => Binary(values, x => x[1] == 0 ? throw new InvalidOperationException() : new[] { x[0] / x[1] }),
+        ["dup"] = (values) => Unary(values, x => new[] { x[0], x[0] }),
+        ["drop"] = (values) => Unary(values, x => new int[] {}),
+        ["swap"] = (values) => Binary(values, x => new int[] { x[1], x[0] }),
+        ["over"] = (values) => Binary(values, x => new int[] { x[0], x[1], x[0] }),
     };
 
     private static void Binary(Stack<int> values, OperationAction op)
@@ -44,7 +48,24 @@ public static class Forth
         }
 
         var result = op(x1, x2);
-        values.Push(result);
+        foreach (var v in result)
+        {
+            values.Push(v);
+        }
+    }
+
+    private static void Unary(Stack<int> values, OperationAction op)
+    {
+        if (!values.TryPop(out var x1))
+        {
+            throw new InvalidOperationException();
+        }
+
+        var result = op(x1);
+        foreach (var v in result)
+        {
+            values.Push(v);
+        }
     }
 
     public static string Evaluate(string[] instructions)

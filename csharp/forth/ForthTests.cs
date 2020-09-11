@@ -107,85 +107,85 @@ public class ForthTests
         Assert.Equal("2", Forth.Evaluate(new[] { "2 4 * 3 /" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Dup_copies_a_value_on_the_stack()
     {
         Assert.Equal("1 1", Forth.Evaluate(new[] { "1 dup" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Dup_copies_the_top_value_on_the_stack()
     {
         Assert.Equal("1 2 2", Forth.Evaluate(new[] { "1 2 dup" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Dup_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "dup" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Drop_removes_the_top_value_on_the_stack_if_it_is_the_only_one()
     {
         Assert.Equal("", Forth.Evaluate(new[] { "1 drop" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Drop_removes_the_top_value_on_the_stack_if_it_is_not_the_only_one()
     {
         Assert.Equal("1", Forth.Evaluate(new[] { "1 2 drop" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Drop_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "drop" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Swap_swaps_the_top_two_values_on_the_stack_if_they_are_the_only_ones()
     {
         Assert.Equal("2 1", Forth.Evaluate(new[] { "1 2 swap" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Swap_swaps_the_top_two_values_on_the_stack_if_they_are_not_the_only_ones()
     {
         Assert.Equal("1 3 2", Forth.Evaluate(new[] { "1 2 3 swap" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Swap_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "swap" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Swap_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 swap" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Over_copies_the_second_element_if_there_are_only_two()
     {
         Assert.Equal("1 2 1", Forth.Evaluate(new[] { "1 2 over" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Over_copies_the_second_element_if_there_are_more_than_two()
     {
         Assert.Equal("1 2 3 2", Forth.Evaluate(new[] { "1 2 3 over" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Over_errors_if_there_is_nothing_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "over" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Over_errors_if_there_is_only_one_value_on_the_stack()
     {
         Assert.Throws<InvalidOperationException>(() => Forth.Evaluate(new[] { "1 over" }));
