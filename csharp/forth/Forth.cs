@@ -7,7 +7,7 @@ public static class Forth
 {
     private static class Grammer
     {
-        private static readonly Parser<char> Color = Parse.Char(':').Token();
+        private static readonly Parser<char> Colon = Parse.Char(':').Token();
         private static readonly Parser<char> SemiColon = Parse.Char(';').Token();
         private static readonly Parser<char> Space = Parse.Char(' ');
 
@@ -16,6 +16,12 @@ public static class Forth
         public static readonly Parser<int> IntNumber = Parse.Number.Select(int.Parse);
 
         public static readonly Parser<IEnumerable<string>> Tokens = Word.DelimitedBy(Space);
+
+        public static readonly Parser<(string, IEnumerable<string>)> CustomWordDefinition =
+            from colon in Colon
+            from tokens in Parse.CharExcept(" ;").Many().Text().DelimitedBy(Space)
+            from semiColon in SemiColon
+            select ( tokens.First().ToLower(), tokens.Skip(1).Where(x => !string.IsNullOrWhiteSpace(x)) );
     }
 
     private delegate int[] OperationAction(params int[] arguments);
@@ -67,25 +73,76 @@ public static class Forth
     public static string Evaluate(string[] instructions)
     {
         var values = new Stack<int>();
+        var userDefinedWords = new Dictionary<string, List<string>>();
+
+        void EvaluationToken(string token)
+        {
+            if (evaluateActions.ContainsKey(token.ToLower()))
+            {
+                evaluateActions[token.ToLower()](values);
+                return;
+            }
+
+            var result = Grammer.IntNumber.TryParse(token);
+            if (result.WasSuccessful)
+            {
+                values.Push(result.Value);
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        void EvaluationTokens(List<string> tokens)
+        {
+            foreach (var token in tokens)
+            {
+                if (userDefinedWords.ContainsKey(token.ToLower()))
+                {
+                    var definitions = userDefinedWords[token.ToLower()];
+                    EvaluationTokens(definitions);
+                    continue;
+                }
+
+                EvaluationToken(token);
+            }
+        }
 
         foreach (var instruction in instructions)
         {
-            var tokens = Grammer.Tokens.Parse(instruction).ToList();
-            foreach (var token in tokens)
+            var userDefinedWordResult = Grammer.CustomWordDefinition.TryParse(instruction);
+            if (userDefinedWordResult.WasSuccessful)
             {
-                if (evaluateActions.ContainsKey(token.ToLower()))
-                {
-                    evaluateActions[token.ToLower()](values);
-                }
-                else
-                {
-                var result = Grammer.IntNumber.TryParse(token);
+                (string udfWord, IEnumerable<string> udfTokens) = userDefinedWordResult.Value;
+
+                var result = Grammer.IntNumber.TryParse(udfWord);
                 if (result.WasSuccessful)
                 {
-                    values.Push(result.Value);
+                    throw new InvalidOperationException();
                 }
+
+                if (!userDefinedWords.ContainsKey(udfWord) || userDefinedWords[udfWord] == null)
+                {
+                    userDefinedWords[udfWord] = new List<string>();
                 }
+                foreach (var udfToken in udfTokens)
+                {
+                    if (userDefinedWords.ContainsKey(udfToken))
+                    {
+                        userDefinedWords[udfWord].AddRange(userDefinedWords[udfToken]);
+                        userDefinedWords[udfToken] = new List<string>();
+                    }
+                    else
+                    {
+                        userDefinedWords[udfWord].Add(udfToken);
+                    }
+                }
+                continue;
             }
+
+            var tokens = Grammer.Tokens.Parse(instruction).ToList();
+            EvaluationTokens(tokens);
         }
 
         return string.Join(" ", values.ToArray().Reverse());
