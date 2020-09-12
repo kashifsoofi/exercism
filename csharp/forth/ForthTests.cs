@@ -203,7 +203,7 @@ public class ForthTests
         Assert.Equal("1 2 3", Forth.Evaluate(new[] { ": countup 1 2 3 ;", "countup" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void User_defined_words_can_override_other_user_defined_words()
     {
         Assert.Equal("1 1 1", Forth.Evaluate(new[] { ": foo dup ;", ": foo dup dup ;", "1 foo" }));
@@ -227,7 +227,7 @@ public class ForthTests
         Assert.Equal("5 6", Forth.Evaluate(new[] { ": foo 5 ;", ": bar foo ;", ": foo 6 ;", "bar foo" }));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void User_defined_words_can_define_word_that_uses_word_with_the_same_name()
     {
         Assert.Equal("11", Forth.Evaluate(new[] { ": foo 10 ;", ": foo foo 1 + ;", "foo" }));

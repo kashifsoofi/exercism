@@ -122,22 +122,20 @@ public static class Forth
                     throw new InvalidOperationException();
                 }
 
-                if (!userDefinedWords.ContainsKey(udfWord) || userDefinedWords[udfWord] == null)
-                {
-                    userDefinedWords[udfWord] = new List<string>();
-                }
+                var wordTokens = new List<string>();
                 foreach (var udfToken in udfTokens)
                 {
                     if (userDefinedWords.ContainsKey(udfToken))
                     {
-                        userDefinedWords[udfWord].AddRange(userDefinedWords[udfToken]);
+                        wordTokens.AddRange(userDefinedWords[udfToken]);
                         userDefinedWords[udfToken] = new List<string>();
                     }
                     else
                     {
-                        userDefinedWords[udfWord].Add(udfToken);
+                        wordTokens.Add(udfToken);
                     }
                 }
+                userDefinedWords[udfWord] = wordTokens;
                 continue;
             }
 
