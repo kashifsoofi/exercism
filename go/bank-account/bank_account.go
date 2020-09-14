@@ -28,14 +28,16 @@ func (a *Account) Close() (payout int64, ok bool) {
 		return 0, false
 	}
 
-	payout, a.closed, a.balance = a.balance, true, 0
+	payout = a.balance
+	a.closed = true
+	a.balance = 0
 	return payout, true
 }
 
 // Balance returns current balance of the account
 func (a *Account) Balance() (balance int64, ok bool) {
-	a.Lock()
-	defer a.Unlock()
+	a.RLock()
+	defer a.RUnlock()
 
 	if a.closed {
 		return 0, false
