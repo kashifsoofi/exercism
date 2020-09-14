@@ -6,24 +6,20 @@ public static class FlattenArray
 {
     public static IEnumerable Flatten(IEnumerable input)
     {
-        void Flatten(IEnumerable input, List<object> output)
+        var flattened = new List<object>();
+        foreach (var item in input)
         {
-            foreach (var item in input)
+            if (item is IEnumerable enumerable)
             {
-                var enumerable = item as IEnumerable;
-                if (enumerable != null)
+                foreach (var nestedItem in Flatten(enumerable))
                 {
-                    Flatten(enumerable, output);
-                }
-                else if (item != null)
-                {
-                    output.Add(item);
+                    yield return nestedItem;
                 }
             }
+            else if (item != null)
+            {
+                yield return item;
+            }
         }
-
-        var flattened = new List<object>();
-        Flatten(input, flattened);
-        return flattened;
     }
 }
