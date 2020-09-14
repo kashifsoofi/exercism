@@ -3,18 +3,11 @@ package account
 
 import "sync"
 
-type accountStatus int
-
-const (
-	active accountStatus = iota
-	closed
-)
-
 // Account sturct to hold balance and current status
 type Account struct {
+	sync.RWMutex
 	balance int64
-	mux     sync.Mutex
-	status  accountStatus
+	closed  bool
 }
 
 // Open returns a new Account
@@ -23,28 +16,28 @@ func Open(initialDeposit int64) *Account {
 		return nil
 	}
 
-	return &Account{balance: initialDeposit, status: active}
+	return &Account{balance: initialDeposit, closed: false}
 }
 
 // Close sets the status to closed and returns closing balance
 func (a *Account) Close() (payout int64, ok bool) {
-	a.mux.Lock()
-	defer a.mux.Unlock()
+	a.Lock()
+	defer a.Unlock()
 
-	if a.status == closed {
+	if a.closed {
 		return 0, false
 	}
 
-	payout, a.status, a.balance = a.balance, closed, 0
+	payout, a.closed, a.balance = a.balance, true, 0
 	return payout, true
 }
 
 // Balance returns current balance of the account
 func (a *Account) Balance() (balance int64, ok bool) {
-	a.mux.Lock()
-	defer a.mux.Unlock()
+	a.Lock()
+	defer a.Unlock()
 
-	if a.status == closed {
+	if a.closed {
 		return 0, false
 	}
 	return a.balance, true
@@ -52,10 +45,10 @@ func (a *Account) Balance() (balance int64, ok bool) {
 
 // Deposit updates accounts balance and returns new balance
 func (a *Account) Deposit(amount int64) (newBalance int64, ok bool) {
-	a.mux.Lock()
-	defer a.mux.Unlock()
+	a.Lock()
+	defer a.Unlock()
 
-	if a.status == closed || a.balance+amount < 0 {
+	if a.closed || a.balance+amount < 0 {
 		return 0, false
 	}
 	a.balance += amount
