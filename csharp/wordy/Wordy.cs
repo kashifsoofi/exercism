@@ -79,6 +79,6 @@ public static class Wordy
         {
             return (int)r.Result;
         }
-        return -1;
+        throw new ArgumentException();
     }
 }
