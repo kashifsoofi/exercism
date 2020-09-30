@@ -65,31 +65,31 @@ public class WordyTests
         Assert.Equal(8, Wordy.Answer("What is 1 plus 5 minus -2?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiple_subtraction()
     {
         Assert.Equal(3, Wordy.Answer("What is 20 minus 4 minus 13?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Subtraction_then_addition()
     {
         Assert.Equal(14, Wordy.Answer("What is 17 minus 6 plus 3?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiple_multiplication()
     {
         Assert.Equal(-12, Wordy.Answer("What is 2 multiplied by -2 multiplied by 3?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_and_multiplication()
     {
         Assert.Equal(-8, Wordy.Answer("What is -3 plus 7 multiplied by -2?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiple_division()
     {
         Assert.Equal(2, Wordy.Answer("What is -12 divided by 2 divided by -3?"));

@@ -2,6 +2,9 @@ using System;
 using sly.lexer;
 using sly.parser;
 using sly.parser.generator;
+using Sprache;
+using System.Linq;
+using System.Linq.Expressions;
 
 public static class Wordy
 {
@@ -71,7 +74,8 @@ public static class Wordy
         return parser.Result;
     }
 
-    public static int Answer(string question)
+    // Is not called as csly does not support Left to Right parsing (at the time of writing)
+    public static int AnswerWithCSly(string question)
     {
         var parser = GetParser();
         var r = parser.Parse(question);
@@ -80,5 +84,47 @@ public static class Wordy
             return (int)r.Result;
         }
         throw new ArgumentException();
+    }
+
+    private static class Grammer
+    {
+        private static readonly Parser<string> WhatIs = Parse.String("What is").Text().Token();
+        private static readonly Parser<char> QuestionMark = Parse.Char('?');
+        private static readonly Parser<Expression> Constant =
+            from op in Parse.Optional(Parse.Char('-').Token())
+            from n in Parse.Number.Token()
+            select Expression.Constant(int.Parse(n) * (op.IsDefined ? -1 : 1));
+        private static readonly Parser<ExpressionType> Operator =
+            Parse.String("plus").Return(ExpressionType.Add)
+                .Or(Parse.String("minus").Return(ExpressionType.Subtract))
+                .Or(Parse.String("multiplied by").Return(ExpressionType.Multiply))
+                .Or(Parse.String("divided by").Return(ExpressionType.Divide));
+
+        private static readonly Parser<Expression> Operation =
+            Parse.ChainOperator(Operator, Constant, Expression.MakeBinary);
+        private static readonly Parser<Expression> Operand =
+            from op in Parse.Optional(Parse.Char('-').Token())
+            from num in Parse.Number
+            select Expression.Constant((int.Parse(num) * (op.IsDefined ? -1 : 1)));
+
+        public static readonly Parser<Expression> Question =
+            from whatIs in WhatIs
+            from expression in Operation.Or(Constant)
+            from questionMark in QuestionMark
+            select expression;
+    }
+
+    public static int Answer(string question)
+    {
+        try
+        {
+            var operation = Grammer.Question.Parse(question);
+            var func = Expression.Lambda<Func<int>>(operation).Compile();
+            return func();
+        }
+        catch (Exception e)
+        {
+            throw new ArgumentException("Invalid input", e);
+        }
     }
 }
