@@ -11,55 +11,55 @@ public class WordyTests
         Assert.Equal(5, Wordy.Answer("What is 5?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition()
     {
         Assert.Equal(2, Wordy.Answer("What is 1 plus 1?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void More_addition()
     {
         Assert.Equal(55, Wordy.Answer("What is 53 plus 2?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_with_negative_numbers()
     {
         Assert.Equal(-11, Wordy.Answer("What is -1 plus -10?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Large_addition()
     {
         Assert.Equal(45801, Wordy.Answer("What is 123 plus 45678?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Subtraction()
     {
         Assert.Equal(16, Wordy.Answer("What is 4 minus -12?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiplication()
     {
         Assert.Equal(-75, Wordy.Answer("What is -3 multiplied by 25?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Division()
     {
         Assert.Equal(-11, Wordy.Answer("What is 33 divided by -3?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiple_additions()
     {
         Assert.Equal(3, Wordy.Answer("What is 1 plus 1 plus 1?"));
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Addition_and_subtraction()
     {
         Assert.Equal(8, Wordy.Answer("What is 1 plus 5 minus -2?"));

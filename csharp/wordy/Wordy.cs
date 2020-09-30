@@ -13,20 +13,41 @@ public static class Wordy
         [Lexeme("(-)?[0-9]+")] INT = 4,
         [Lexeme("plus")] PLUS = 5,
         [Lexeme("minus")] MINUS = 6,
+        [Lexeme("multiplied by")] TIMES = 7,
+        [Lexeme("divided by")] DIVIDE = 8,
     }
 
     public class ExpressionParser
     {
-        [Production("primary: WHAT_IS term QUESTION_MARK")]
+        [Production("primary: WHAT_IS expression QUESTION_MARK")]
         public int Expression( Token<ExpressionToken> forget, int value, Token<ExpressionToken> ignore)
         {
             return value;
         }
 
         [Production("expression : term PLUS expression")]
+        [Production("expression : term MINUS expression")]
+        [Production("expression : term TIMES expression")]
+        [Production("expression : term DIVIDE expression")]
         public int Binary(int left, Token<ExpressionToken> operatorToken, int right)
         {
-            return left + right;
+            var result = 0;
+            switch (operatorToken.TokenID)
+            {
+                case ExpressionToken.PLUS:
+                    result = left + right;
+                    break;
+                case ExpressionToken.MINUS:
+                    result = left - right;
+                    break;
+                case ExpressionToken.TIMES:
+                    result = left * right;
+                    break;
+                case ExpressionToken.DIVIDE:
+                    result = left / right;
+                    break;
+            }
+            return result;
         }
 
         [Production("expression : term")]
@@ -46,7 +67,7 @@ public static class Wordy
     {
         var parserInstance = new ExpressionParser();
         var builder = new ParserBuilder<ExpressionToken, int>();
-        var parser = builder.BuildParser(parserInstance, ParserType.LL_RECURSIVE_DESCENT, "expression");
+        var parser = builder.BuildParser(parserInstance, ParserType.LL_RECURSIVE_DESCENT, "primary");
         return parser.Result;
     }
 
