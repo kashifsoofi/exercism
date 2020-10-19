@@ -27,12 +27,12 @@ pub fn verse(n: u32) -> String {
     )
 }
 
-pub fn sing(start: u32, end: u32) -> String {    
+pub fn sing(start: u32, end: u32) -> String {
     let mut v: Vec<String> = Vec::new();
 
     for i in (end..=start).rev() {
         v.push(verse(i));
     }
-    
+
     v.join("\n")
 }
