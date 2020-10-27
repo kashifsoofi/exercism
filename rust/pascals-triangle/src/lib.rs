@@ -9,7 +9,7 @@ impl PascalsTriangle {
         if row_count > 0 {
             rows.push(vec![1u32]);
 
-            for i in 1..row_count {
+            for _ in 1..row_count {
                 rows.push(Self::generate_row(rows.get(rows.len() - 1).unwrap()));
             }
         }
