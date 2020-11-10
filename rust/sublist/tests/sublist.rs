@@ -47,7 +47,6 @@ fn sublist_at_end() {
 }
 
 #[test]
-#[ignore]
 fn partially_matching_sublist_at_start() {
     assert_eq!(Comparison::Sublist, sublist(&[1, 1, 2], &[1, 1, 1, 2]));
 }
