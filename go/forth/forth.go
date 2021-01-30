@@ -16,7 +16,10 @@ const (
 	eof
 	ws
 
-	word
+	colon
+	semicolon
+	customword
+
 	term
 
 	plus
@@ -136,9 +139,13 @@ func (s *scanner) scanWord() (t token, l string) {
 		return swap, buf.String()
 	case "OVER":
 		return over, buf.String()
+	case ":":
+		return colon, buf.String()
+	case ";":
+		return semicolon, buf.String()
 	}
 
-	return word, buf.String()
+	return customword, buf.String()
 }
 
 func (s *scanner) read() rune {
@@ -158,7 +165,7 @@ func isWhitespace(ch rune) bool {
 }
 
 func isWordLetter(ch rune) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '+' || ch == '-' || ch == '*' || ch == '/'
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == ':' || ch == ';'
 }
 
 func isDigit(ch rune) bool {
@@ -206,18 +213,45 @@ func (p *parser) scanIgnoreWhitespace() (tok token, lit string) {
 	return
 }
 
-func (p *parser) Parse() (forthstack, error) {
+func (p *parser) Parse() (forthstack, customWords, error) {
 	stack := make(forthstack, 0)
-	for {
-		tok, lit := p.scanIgnoreWhitespace()
-		if tok == eof {
-			break
+	customWords := make(customWords, 0)
+
+	tok, lit := p.scanIgnoreWhitespace()
+	if tok == colon {
+		// custom word definition
+		tok, lit = p.scanIgnoreWhitespace()
+
+		customWord := newCustomWord(lit)
+
+		for {
+			tok, lit = p.scanIgnoreWhitespace()
+			if tok == semicolon {
+				break
+			}
+
+			if tok == eof {
+				return stack, customWords, errors.New("invalid custom word definition")
+			}
+
+			customWord.stack = append(customWord.stack, newNode(tok, lit))
 		}
 
-		stack = append(stack, newNode(tok, lit))
+		customWords = append(customWords, customWord)
+	} else {
+		p.unscan()
+
+		for {
+			tok, lit := p.scanIgnoreWhitespace()
+			if tok == eof {
+				break
+			}
+
+			stack = append(stack, newNode(tok, lit))
+		}
 	}
 
-	return stack, nil
+	return stack, customWords, nil
 }
 
 type node struct {
@@ -231,16 +265,73 @@ func newNode(tok token, lit string) *node {
 
 type forthstack []*node
 
-// Forth evaluates the given Forth inputs and returns the result.
-func Forth(inputs []string) ([]int, error) {
-	parser := newParser(strings.NewReader(inputs[0]))
-	stack, _ := parser.Parse()
-	return evaluate(stack)
+type customWord struct {
+	word  string
+	stack forthstack
 }
 
-func evaluate(input forthstack) ([]int, error) {
+func newCustomWord(word string) *customWord {
+	return &customWord{word: word, stack: make(forthstack, 0)}
+}
+
+type customWords []*customWord
+
+// Forth evaluates the given Forth inputs and returns the result.
+func Forth(inputs []string) ([]int, error) {
+	allCustomWords := make(customWords, 0)
+	for _, input := range inputs {
+		parser := newParser(strings.NewReader(input))
+		stack, customWords, err := parser.Parse()
+		if err != nil {
+			return []int{}, err
+		}
+
+		if len(customWords) > 0 {
+			allCustomWords = append(allCustomWords, customWords...)
+		} else if len(stack) > 0 {
+			return evaluate(allCustomWords, stack)
+		}
+	}
+	return []int{}, errors.New("unknown error")
+}
+
+func evaluate(customWords customWords, input forthstack) ([]int, error) {
 	stack := make([]int, 0)
-	for _, n := range input {
+	for idx := 0; idx < len(input); idx++ {
+		n := input[idx]
+
+		if len(customWords) > 0 && n.tok != term {
+			userDefinedWords := make(forthstack, 0)
+			for j := len(customWords) - 1; j >= 0; j-- {
+				w := customWords[j]
+				if strings.ToUpper(w.word) == strings.ToUpper(n.lit) {
+					if w.stack[0].tok == customword {
+						n = w.stack[0]
+						if len(w.stack) > 0 {
+							userDefinedWords = append(userDefinedWords, w.stack[1:]...)
+						}
+					} else {
+						userDefinedWords = append(userDefinedWords, w.stack...)
+						if len(userDefinedWords) > len(w.stack) {
+							copy(userDefinedWords[len(w.stack):], userDefinedWords[0:])
+							copy(userDefinedWords[0:], w.stack)
+						}
+						break
+					}
+				}
+			}
+
+			if len(userDefinedWords) > 0 {
+				n = userDefinedWords[0]
+			}
+
+			if len(userDefinedWords) > 1 {
+				input = append(input, userDefinedWords[1:]...)
+				copy(input[idx+len(userDefinedWords)-2:], input[idx+1:])
+				copy(input[idx:], userDefinedWords[0:])
+			}
+		}
+
 		switch n.tok {
 		case term:
 			i, _ := strconv.Atoi(n.lit)
@@ -306,6 +397,8 @@ func evaluate(input forthstack) ([]int, error) {
 				return stack, errors.New("not enough numbers in stack to perform operation")
 			}
 			stack = append(stack, stack[len(stack)-2])
+		default:
+			return stack, errors.New("non-existent word")
 		}
 	}
 
