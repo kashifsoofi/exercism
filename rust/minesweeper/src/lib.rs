@@ -3,20 +3,6 @@ use std::{char::from_digit, usize};
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
     let mut result: Vec<String> = Vec::with_capacity(minefield.len());
     for (x, row) in minefield.iter().enumerate() {
-        /*let mut s = String::with_capacity(row.len());
-        for (y, ch) in row.chars().enumerate() {
-            if ch == ' ' {
-                let mines = match get_adjacent_mine_count(minefield, x, y) {
-                    0 => ' ',
-                    c => from_digit(c, 10).unwrap()
-                };
-                s.push(mines);
-            } else {
-                s.push(ch);
-            }
-        }
-        */
-
         let s = row
             .chars()
             .enumerate()
