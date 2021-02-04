@@ -1,12 +1,11 @@
-use std::usize;
-
 #[derive(Debug)]
-enum QuestionError {
-    InvalidQuestion
+pub enum QuestionError {
+    InvalidToken,
+    NotAQuestion,
 }
 
 #[derive(Debug, PartialEq)]
-enum Token {
+pub enum Token {
     Invalid(String),
     Eof,
 
@@ -25,67 +24,42 @@ enum Token {
 }
 
 impl Token {
-    fn is_what(&self) -> bool {
+    pub fn is_what(&self) -> bool {
         match self {
             Token::What(..) => true,
             _ => false,
         }
     }
 
-    fn is_is(&self) -> bool {
+    pub fn is_is(&self) -> bool {
         match self {
             Token::Is(..) => true,
             _ => false,
         }
     }
 
-    fn is_number(&self) -> bool {
-        match self {
-            Token::Number(..) => true,
-            _ => false,
-        }
-    }
-
-    fn is_operator(&self) -> bool {
-        self.is_plus() || self.is_minus() || self.is_times() || self.is_divide()
-    }
-
-    fn is_plus(&self) -> bool {
-        match self {
-            Token::Plus(..) => true,
-            _ => false,
-        }
-    }
-
-    fn is_minus(&self) -> bool {
-        match self {
-            Token::Minus(..) => true,
-            _ => false,
-        }
-    }
-
-    fn is_times(&self) -> bool {
+    pub fn is_times(&self) -> bool {
         match self {
             Token::Times(..) => true,
             _ => false,
         }
     }
 
-    fn is_divide(&self) -> bool {
+    pub fn is_divide(&self) -> bool {
         match self {
             Token::Divide(..) => true,
             _ => false,
         }
     }
 
-    fn is_by(&self) -> bool {
+    pub fn is_by(&self) -> bool {
         match self {
             Token::By(..) => true,
             _ => false,
         }
     }
 
-    fn is_question_mark(&self) -> bool {
+    pub fn is_question_mark(&self) -> bool {
         match self {
             Token::QuestionMark(..) => true,
             _ => false,
@@ -94,13 +68,13 @@ impl Token {
 }
 
 #[derive(Debug, Clone)]
-struct Scanner {
+pub struct Scanner {
     literals: Vec<String>,
     read_index: usize,
 }
 
 impl Scanner {
-    fn new(command: &str) -> Self {
+    pub fn new(command: &str) -> Self {
         let mut tokens: Vec<_> = command.split_whitespace().map(|s| s.to_string()).collect();
 
         let last = tokens.last();
@@ -114,7 +88,7 @@ impl Scanner {
         Scanner { literals: tokens, read_index: 0 }
     }
 
-    fn scan(&mut self) -> Token {
+    pub fn scan(&mut self) -> Token {
         if self.read_index == self.literals.len() {
             return Token::Eof;
         }
@@ -140,19 +114,39 @@ impl Scanner {
         }
     }
 
-    fn unscan(&mut self) {
+    pub fn unscan(&mut self) {
         self.read_index -= 1;
     }
 }
 
+#[derive(Debug, Clone)]
+enum Operator {
+    Plus,
+    Minus,
+    Times,
+    Divide,
+}
+
+#[derive(Debug, Clone)]
+struct OperatorTerm {
+    operator: Operator,
+    value: i32,
+}
+
+#[derive(Debug, Clone)]
+struct Expression {
+    value: i32,
+    op_terms: Vec<OperatorTerm>,
+}
+
 pub struct WordProblem {
     scanner: Scanner,
-    tokens: Vec<Token>,
+    expression: Option<Expression>,
 }
 
 impl WordProblem {
     fn new(command: &str) -> Self {
-        WordProblem { scanner: Scanner::new(command), tokens: Vec::default() }
+        WordProblem { scanner: Scanner::new(command), expression: None }
     }
 
     fn scan(&mut self) -> Token {
@@ -166,19 +160,21 @@ impl WordProblem {
     fn parse(&mut self) -> Option<QuestionError> {
         let mut token = self.scan();
         if !token.is_what() {
-            return Some(QuestionError::InvalidQuestion)
+            return Some(QuestionError::InvalidToken)
         }
 
         token = self.scan();
         if !token.is_is() {
-            return Some(QuestionError::InvalidQuestion)
+            return Some(QuestionError::InvalidToken)
         }
 
+        let mut expression = Expression { value: 0, op_terms: Vec::default() };
+
         token = self.scan();
-        if !token.is_number() {
-            return Some(QuestionError::InvalidQuestion)
+        match token {
+            Token::Number(value) => expression.value = value,
+            _ => return Some(QuestionError::InvalidToken),
         }
-        self.tokens.push(token);
 
         loop {
             token = self.scan();
@@ -187,35 +183,60 @@ impl WordProblem {
                 break;
             }
 
-            if !token.is_operator() {
-                return Some(QuestionError::InvalidQuestion)
+            let operator;
+            match token {
+                Token::Plus(_) => operator = Operator::Plus,
+                Token::Minus(_) => operator = Operator::Minus,
+                Token::Times(_) => operator = Operator::Times,
+                Token::Divide(_) => operator = Operator::Divide,
+                _ => return Some(QuestionError::InvalidToken)
             }
 
             if token.is_times() || token.is_divide() {
                 token = self.scan();
                 if !token.is_by() {
-                    return Some(QuestionError::InvalidQuestion)
+                    return Some(QuestionError::InvalidToken)
                 }
             }
-            self.tokens.push(token);
 
+            let value: i32;
             token = self.scan();
-            if !token.is_number() {
-                return Some(QuestionError::InvalidQuestion)
+            match token {
+                Token::Number(n) => value = n,
+                _ => return Some(QuestionError::InvalidToken),
             }
-            self.tokens.push(token);
+
+            expression.op_terms.push(OperatorTerm { operator: operator, value: value })
         }
 
         token = self.scan();
         if !token.is_question_mark() {
-            return Some(QuestionError::InvalidQuestion)
+            return Some(QuestionError::NotAQuestion)
         }
+
+        self.expression = Some(expression);
 
         None
     }
 
     fn eval(&self) -> Option<i32> {
-        None
+        match self.expression.clone() {
+            None => None,
+            Some(expr) => {
+                let mut result = expr.value;
+
+                for op_term in expr.op_terms.iter() {
+                    match op_term.operator {
+                        Operator::Plus => result += op_term.value,
+                        Operator::Minus => result -= op_term.value,
+                        Operator::Times => result *= op_term.value,
+                        Operator::Divide => result /= op_term.value,
+                    }
+                }
+
+                Some(result)
+            }
+        }
     }
 }
 
