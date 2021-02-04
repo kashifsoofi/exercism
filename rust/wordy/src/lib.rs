@@ -143,7 +143,15 @@ impl Scanner {
             "the" => Token::The(literal),
             "power" => Token::Power(literal),
             _ => {
-                match literal.parse::<i32>() {
+                let num = literal
+                    .chars()
+                    .filter(|x| match x {
+                        'a'..='z' => false,
+                        _ => true,
+                    })
+                    .collect::<String>();
+
+                match num.parse::<i32>() {
                     Ok(n) => Token::Number(n),
                     _ => Token::Invalid(literal),
                 }
@@ -156,7 +164,7 @@ impl Scanner {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum Operator {
     Plus,
     Minus,
@@ -243,8 +251,8 @@ impl Parser {
                 Token::Number(n) => value = n,
                 _ => return Err(QuestionError::InvalidToken),
             }
-
-            if token.is_raised() {
+            
+            if operator == Operator::Exponential {
                 token = self.scan();
                 if !token.is_power() {
                     return Err(QuestionError::InvalidToken)
@@ -252,12 +260,12 @@ impl Parser {
             }
             expression.op_terms.push(OperatorTerm { operator: operator, value: value });
         }
-
+        
         token = self.scan();
         if !token.is_question_mark() {
             return Err(QuestionError::NotAQuestion)
         }
-
+        
         Ok(expression)
     }
 }
