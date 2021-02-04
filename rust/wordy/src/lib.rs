@@ -1,11 +1,11 @@
 #[derive(Debug)]
-pub enum QuestionError {
+enum QuestionError {
     InvalidToken,
     NotAQuestion,
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Token {
+enum Token {
     Invalid(String),
     Eof,
 
@@ -24,42 +24,42 @@ pub enum Token {
 }
 
 impl Token {
-    pub fn is_what(&self) -> bool {
+    fn is_what(&self) -> bool {
         match self {
             Token::What(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_is(&self) -> bool {
+    fn is_is(&self) -> bool {
         match self {
             Token::Is(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_times(&self) -> bool {
+    fn is_times(&self) -> bool {
         match self {
             Token::Times(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_divide(&self) -> bool {
+    fn is_divide(&self) -> bool {
         match self {
             Token::Divide(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_by(&self) -> bool {
+    fn is_by(&self) -> bool {
         match self {
             Token::By(..) => true,
             _ => false,
         }
     }
 
-    pub fn is_question_mark(&self) -> bool {
+    fn is_question_mark(&self) -> bool {
         match self {
             Token::QuestionMark(..) => true,
             _ => false,
@@ -68,13 +68,13 @@ impl Token {
 }
 
 #[derive(Debug, Clone)]
-pub struct Scanner {
+struct Scanner {
     literals: Vec<String>,
     read_index: usize,
 }
 
 impl Scanner {
-    pub fn new(command: &str) -> Self {
+    fn new(command: &str) -> Self {
         let mut tokens: Vec<_> = command.split_whitespace().map(|s| s.to_string()).collect();
 
         let last = tokens.last();
@@ -88,7 +88,7 @@ impl Scanner {
         Scanner { literals: tokens, read_index: 0 }
     }
 
-    pub fn scan(&mut self) -> Token {
+    fn scan(&mut self) -> Token {
         if self.read_index == self.literals.len() {
             return Token::Eof;
         }
@@ -114,7 +114,7 @@ impl Scanner {
         }
     }
 
-    pub fn unscan(&mut self) {
+    fn unscan(&mut self) {
         self.read_index -= 1;
     }
 }
@@ -139,14 +139,13 @@ struct Expression {
     op_terms: Vec<OperatorTerm>,
 }
 
-pub struct WordProblem {
+struct Parser {
     scanner: Scanner,
-    expression: Option<Expression>,
 }
 
-impl WordProblem {
+impl Parser {
     fn new(command: &str) -> Self {
-        WordProblem { scanner: Scanner::new(command), expression: None }
+        Parser { scanner: Scanner::new(command) }
     }
 
     fn scan(&mut self) -> Token {
@@ -157,15 +156,15 @@ impl WordProblem {
         self.scanner.unscan()
     }
 
-    fn parse(&mut self) -> Option<QuestionError> {
+    fn parse(&mut self) -> Result<Expression, QuestionError> {
         let mut token = self.scan();
         if !token.is_what() {
-            return Some(QuestionError::InvalidToken)
+            return Err(QuestionError::InvalidToken)
         }
 
         token = self.scan();
         if !token.is_is() {
-            return Some(QuestionError::InvalidToken)
+            return Err(QuestionError::InvalidToken)
         }
 
         let mut expression = Expression { value: 0, op_terms: Vec::default() };
@@ -173,7 +172,7 @@ impl WordProblem {
         token = self.scan();
         match token {
             Token::Number(value) => expression.value = value,
-            _ => return Some(QuestionError::InvalidToken),
+            _ => return Err(QuestionError::InvalidToken),
         }
 
         loop {
@@ -189,13 +188,13 @@ impl WordProblem {
                 Token::Minus(_) => operator = Operator::Minus,
                 Token::Times(_) => operator = Operator::Times,
                 Token::Divide(_) => operator = Operator::Divide,
-                _ => return Some(QuestionError::InvalidToken)
+                _ => return Err(QuestionError::InvalidToken)
             }
 
             if token.is_times() || token.is_divide() {
                 token = self.scan();
                 if !token.is_by() {
-                    return Some(QuestionError::InvalidToken)
+                    return Err(QuestionError::InvalidToken)
                 }
             }
 
@@ -203,7 +202,7 @@ impl WordProblem {
             token = self.scan();
             match token {
                 Token::Number(n) => value = n,
-                _ => return Some(QuestionError::InvalidToken),
+                _ => return Err(QuestionError::InvalidToken),
             }
 
             expression.op_terms.push(OperatorTerm { operator: operator, value: value })
@@ -211,39 +210,46 @@ impl WordProblem {
 
         token = self.scan();
         if !token.is_question_mark() {
-            return Some(QuestionError::NotAQuestion)
+            return Err(QuestionError::NotAQuestion)
         }
 
-        self.expression = Some(expression);
+        Ok(expression)
+    }
+}
 
-        None
+pub struct WordProblem {
+    expression: Expression,
+}
+
+impl WordProblem {
+    fn new(expression: &Expression) -> Self {
+        WordProblem { expression: expression.clone() }
     }
 
+
     fn eval(&self) -> Option<i32> {
-        match self.expression.clone() {
-            None => None,
-            Some(expr) => {
-                let mut result = expr.value;
+        let mut result = self.expression.value;
 
-                for op_term in expr.op_terms.iter() {
-                    match op_term.operator {
-                        Operator::Plus => result += op_term.value,
-                        Operator::Minus => result -= op_term.value,
-                        Operator::Times => result *= op_term.value,
-                        Operator::Divide => result /= op_term.value,
-                    }
-                }
-
-                Some(result)
+        for op_term in self.expression.op_terms.iter() {
+            match op_term.operator {
+                Operator::Plus => result += op_term.value,
+                Operator::Minus => result -= op_term.value,
+                Operator::Times => result *= op_term.value,
+                Operator::Divide => result /= op_term.value,
             }
         }
+
+        Some(result)
     }
 }
 
 pub fn answer(command: &str) -> Option<i32> {
-    let mut word_problem = WordProblem::new(command);
-    match word_problem.parse() {
-        None => word_problem.eval(),
-        _ => None
+    let mut parser = Parser::new(command);
+    match parser.parse() {
+        Ok(expr) => {
+            let word_problem = WordProblem::new(&expr);
+            word_problem.eval()
+        },
+        Err(_) => None,
     }
 }
