@@ -20,6 +20,11 @@ enum Token {
     Divide(String),
     By(String),
 
+    Raised(String),
+    To(String),
+    The(String),
+    Power(String),
+
     QuestionMark(String),
 }
 
@@ -55,6 +60,34 @@ impl Token {
     fn is_by(&self) -> bool {
         match self {
             Token::By(..) => true,
+            _ => false,
+        }
+    }
+
+    fn is_raised(&self) -> bool {
+        match self {
+            Token::Raised(..) => true,
+            _ => false,
+        }
+    }
+
+    fn is_to(&self) -> bool {
+        match self {
+            Token::To(..) => true,
+            _ => false,
+        }
+    }
+
+    fn is_the(&self) -> bool {
+        match self {
+            Token::The(..) => true,
+            _ => false,
+        }
+    }
+
+    fn is_power(&self) -> bool {
+        match self {
+            Token::Power(..) => true,
             _ => false,
         }
     }
@@ -105,10 +138,14 @@ impl Scanner {
             "divided" => Token::Divide(literal),
             "by" => Token::By(literal),
             "?" => Token::QuestionMark(literal),
+            "raised" => Token::Raised(literal),
+            "to" => Token::To(literal),
+            "the" => Token::The(literal),
+            "power" => Token::Power(literal),
             _ => {
                 match literal.parse::<i32>() {
                     Ok(n) => Token::Number(n),
-                    _ => Token::Invalid(literal)
+                    _ => Token::Invalid(literal),
                 }
             }
         }
@@ -125,18 +162,7 @@ enum Operator {
     Minus,
     Times,
     Divide,
-}
-
-#[derive(Debug, Clone)]
-struct OperatorTerm {
-    operator: Operator,
-    value: i32,
-}
-
-#[derive(Debug, Clone)]
-struct Expression {
-    value: i32,
-    op_terms: Vec<OperatorTerm>,
+    Exponential,
 }
 
 struct Parser {
@@ -188,12 +214,25 @@ impl Parser {
                 Token::Minus(_) => operator = Operator::Minus,
                 Token::Times(_) => operator = Operator::Times,
                 Token::Divide(_) => operator = Operator::Divide,
+                Token::Raised(_) => operator = Operator::Exponential,
                 _ => return Err(QuestionError::InvalidToken)
             }
 
             if token.is_times() || token.is_divide() {
                 token = self.scan();
                 if !token.is_by() {
+                    return Err(QuestionError::InvalidToken)
+                }
+            }
+
+            if token.is_raised() {
+                token = self.scan();
+                if !token.is_to() {
+                    return Err(QuestionError::InvalidToken)
+                }
+
+                token = self.scan();
+                if !token.is_the() {
                     return Err(QuestionError::InvalidToken)
                 }
             }
@@ -205,7 +244,13 @@ impl Parser {
                 _ => return Err(QuestionError::InvalidToken),
             }
 
-            expression.op_terms.push(OperatorTerm { operator: operator, value: value })
+            if token.is_raised() {
+                token = self.scan();
+                if !token.is_power() {
+                    return Err(QuestionError::InvalidToken)
+                }
+            }
+            expression.op_terms.push(OperatorTerm { operator: operator, value: value });
         }
 
         token = self.scan();
@@ -215,6 +260,18 @@ impl Parser {
 
         Ok(expression)
     }
+}
+
+#[derive(Debug, Clone)]
+struct OperatorTerm {
+    operator: Operator,
+    value: i32,
+}
+
+#[derive(Debug, Clone)]
+struct Expression {
+    value: i32,
+    op_terms: Vec<OperatorTerm>,
 }
 
 pub struct WordProblem {
@@ -236,6 +293,7 @@ impl WordProblem {
                 Operator::Minus => result -= op_term.value,
                 Operator::Times => result *= op_term.value,
                 Operator::Divide => result /= op_term.value,
+                Operator::Exponential => result = result.pow(op_term.value as u32),
             }
         }
 
