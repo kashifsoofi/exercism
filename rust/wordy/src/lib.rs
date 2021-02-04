@@ -93,6 +93,7 @@ impl Token {
     }
 }
 
+#[derive(Debug, Clone)]
 struct Scanner {
     literals: Vec<String>,
     read_index: usize,
@@ -100,15 +101,25 @@ struct Scanner {
 
 impl Scanner {
     fn new(command: &str) -> Self {
-        Scanner { literals: command.split_whitespace().collect(), read_index: 0 }
+        let mut tokens: Vec<_> = command.split_whitespace().map(|s| s.to_string()).collect();
+
+        let last = tokens.last();
+        if last.is_some() && last.unwrap().ends_with("?") {
+            let mut last = tokens.pop().unwrap();
+            let question_mark = last.pop().unwrap();
+            tokens.push(last);
+            tokens.push(question_mark.to_string());
+        }
+
+        Scanner { literals: tokens, read_index: 0 }
     }
 
-    fn scan(mut self) -> Token {
+    fn scan(&mut self) -> Token {
         if self.read_index == self.literals.len() {
             return Token::Eof;
         }
 
-        let literal: String = self.literals[self.read_index];
+        let literal: String = self.literals[self.read_index].clone();
         self.read_index += 1;
 
         match literal.to_lowercase().as_str() {
@@ -129,7 +140,7 @@ impl Scanner {
         }
     }
 
-    fn unscan(mut self) {
+    fn unscan(&mut self) {
         self.read_index -= 1;
     }
 }
@@ -144,27 +155,35 @@ impl WordProblem {
         WordProblem { scanner: Scanner::new(command), tokens: Vec::default() }
     }
 
-    fn parse(mut self) -> Option<QuestionError> {
-        let mut token = self.scanner.scan();
+    fn scan(&mut self) -> Token {
+        self.scanner.scan()
+    }
+
+    fn unscan(&mut self) {
+        self.scanner.unscan()
+    }
+
+    fn parse(&mut self) -> Option<QuestionError> {
+        let mut token = self.scan();
         if !token.is_what() {
             return Some(QuestionError::InvalidQuestion)
         }
 
-        token = self.scanner.scan();
+        token = self.scan();
         if !token.is_is() {
             return Some(QuestionError::InvalidQuestion)
         }
 
-        token = self.scanner.scan();
+        token = self.scan();
         if !token.is_number() {
             return Some(QuestionError::InvalidQuestion)
         }
         self.tokens.push(token);
 
         loop {
-            token = self.scanner.scan();
+            token = self.scan();
             if token.is_question_mark() {
-                self.scanner.unscan();
+                self.unscan();
                 break;
             }
 
@@ -173,21 +192,21 @@ impl WordProblem {
             }
 
             if token.is_times() || token.is_divide() {
-                token = self.scanner.scan();
+                token = self.scan();
                 if !token.is_by() {
                     return Some(QuestionError::InvalidQuestion)
                 }
             }
             self.tokens.push(token);
 
-            token = self.scanner.scan();
+            token = self.scan();
             if !token.is_number() {
                 return Some(QuestionError::InvalidQuestion)
             }
             self.tokens.push(token);
         }
-        
-        token = self.scanner.scan();
+
+        token = self.scan();
         if !token.is_question_mark() {
             return Some(QuestionError::InvalidQuestion)
         }
@@ -201,7 +220,7 @@ impl WordProblem {
 }
 
 pub fn answer(command: &str) -> Option<i32> {
-    let word_problem = WordProblem::new(command);
+    let mut word_problem = WordProblem::new(command);
     match word_problem.parse() {
         None => word_problem.eval(),
         _ => None
