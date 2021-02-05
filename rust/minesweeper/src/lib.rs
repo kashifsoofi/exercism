@@ -1,39 +1,36 @@
 use std::{char::from_digit, usize};
 
 pub fn annotate(minefield: &[&str]) -> Vec<String> {
-    let mut result: Vec<String> = Vec::with_capacity(minefield.len());
-    for (x, row) in minefield.iter().enumerate() {
-        let s = row
-            .chars()
-            .enumerate()
-            .map(|(y, ch)| match ch {
-                ' ' => {
-                    match get_adjacent_mine_count(minefield, x, y) {
-                        0 => ' ',
-                        c => from_digit(c, 10).unwrap()
+    minefield
+        .iter()
+        .enumerate()
+        .map(|(y, row)| {
+            row
+                .char_indices()
+                .map(|(x, ch)| {
+                    match ch {
+                        '*' => '*',
+                        _ => match count_mines(minefield, (x, y)) {
+                            0 => ' ',
+                            n => from_digit(n, 10).unwrap(),
+                        },
                     }
-                },
-                _ => ch,
-            })
-            .collect();
-
-        result.push(s);
-    }
-
-    result
+                })
+                .collect()
+        })
+        .collect()
 }
 
-fn get_adjacent_mine_count(minefield: &[&str], x: usize, y: usize) -> u32 {
-    let mut mine_count = 0;
-    for i in x.saturating_sub(1)..=(x+1).min(minefield.len() - 1) {
-        for j in y.saturating_sub(1)..=(y+1).min(minefield[x].len() - 1) {
-            match minefield.get(i).map(|&s| s.get(j..j+1)) {
-                Some(Some("*")) => {
-                    mine_count += 1;
-                },
-                _ => continue,
-            }
-        }
-    }
-    mine_count
+fn count_mines(minefield: &[&str], square: (usize, usize)) -> u32 {
+    minefield
+        .iter()
+        .take(square.1 + 2)
+        .skip((square.1 as i32 - 1).max(0) as usize)
+        .flat_map(|row| {
+            row.chars()
+                .take(square.0 + 2)
+                .skip((square.0 as i32 - 1).max(0) as usize)
+        })
+        .filter(|&ch| ch == '*')
+        .count() as u32
 }
