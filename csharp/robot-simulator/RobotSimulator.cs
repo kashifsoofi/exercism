@@ -10,36 +10,96 @@ public enum Direction
 
 public class RobotSimulator
 {
+    private Direction direction;
+    private int x;
+    private int y;
+
     public RobotSimulator(Direction direction, int x, int y)
     {
+        this.direction = direction;
+        this.x = x;
+        this.y = y;
     }
 
-    public Direction Direction
+    public Direction Direction => direction;
+
+    public int X => x;
+
+    public int Y => y;
+
+    public void TurnRight()
     {
-        get
+        switch (Direction)
         {
-            throw new NotImplementedException("You need to implement this function.");
+            case Direction.North:
+                direction = Direction.East;
+                break;
+            case Direction.East:
+                direction = Direction.South;
+                break;
+            case Direction.South:
+                direction = Direction.West;
+                break;
+            case Direction.West:
+                direction = Direction.North;
+                break;
         }
     }
 
-    public int X
+    public void TurnLeft()
     {
-        get
+        switch (Direction)
         {
-            throw new NotImplementedException("You need to implement this function.");
+            case Direction.North:
+                direction = Direction.West;
+                break;
+            case Direction.West:
+                direction = Direction.South;
+                break;
+            case Direction.South:
+                direction = Direction.East;
+                break;
+            case Direction.East:
+                direction = Direction.North;
+                break;
         }
     }
 
-    public int Y
+    public void Advance()
     {
-        get
+        switch (Direction)
         {
-            throw new NotImplementedException("You need to implement this function.");
+            case Direction.North:
+                y += 1;
+                break;
+            case Direction.East:
+                x += 1;
+                break;
+            case Direction.South:
+                y -= 1;
+                break;
+            case Direction.West:
+                x -= 1;
+                break;
         }
     }
 
     public void Move(string instructions)
     {
-        throw new NotImplementedException("You need to implement this function.");
+        foreach (var c in instructions)
+        {
+            switch (c)
+            {
+                case 'A':
+                    Advance();
+                    break;
+                case 'L':
+                    TurnLeft();
+                    break;
+                case 'R':
+                    TurnRight();
+                    break;
+            }
+        }
     }
 }
