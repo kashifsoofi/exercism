@@ -13,7 +13,7 @@ public class PokerTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Highest_card_out_of_all_hands_wins()
     {
         var hands = new[] { "4D 5S 6S 8D 3C", "2S 4C 7S 9H 10H", "3S 4S 5D 6H JH" };
