@@ -17,7 +17,7 @@ public static class Poker
         public Card(string card)
         {
             Value = ParseValue(card.Substring(0, card.Length - 1));
-            Suit = ParseSuit(card[card.Length - 1]);
+            Suit = ParseSuit(card[^1]);
         }
 
         public int Value { get; }
@@ -51,25 +51,63 @@ public static class Poker
     public class Hand
     {
         private readonly Card[] cards;
-        private readonly int handScore;
+
         public Hand(string input)
         {
             Input = input;
             cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Value).ToArray();
-            handScore = CalculateHandScore();
+            Score = CalculateHandScore();
         }
 
         public string Input { get; }
-        public int Score => handScore;
+        public double Score { get; }
 
-        private int CalculateHandScore()
+        private double CalculateHandScore()
         {
-            var handScore = 0;
+            var pair1Value = -1;
+            var pair2Value = -1;
+            for (var i = 0; i < cards.Length - 1; i++)
+            {
+                var currentValue = cards[i].Value;
+                var nextValue = cards[i+1].Value;
+
+                if (pair1Value == -1 && currentValue == nextValue)
+                {
+                    pair1Value = currentValue;
+                    continue;
+                }
+
+                if (pair2Value == -1 && currentValue != pair1Value && currentValue == nextValue)
+                {
+                    pair2Value = currentValue;
+                    continue;
+                }
+            }
+
+            var handScore = 0.0;
             for (var i = cards.Length; i > 0; i--)
             {
+                if (cards[i-1].Value == pair1Value || cards[i-1].Value == pair2Value)
+                {
+                    continue;
+                }
+
                 var cardScore = cards[i-1].Value - 2;
-                handScore += cardScore * (int)Math.Pow(13, i);
+                handScore += cardScore * Math.Pow(13, i);
             }
+
+            handScore /= 433175;
+
+            if (pair1Value != -1)
+            {
+                handScore += 100 + pair1Value / 14.0 * 50;
+            }
+
+            if (pair2Value != -1)
+            {
+                handScore += 100 + pair2Value / 14.0 * 50;
+            }
+
             return handScore;
         }
     }
