@@ -51,22 +51,33 @@ public static class Poker
     public class Hand
     {
         private readonly Card[] cards;
-        private int highestCard;
+        private readonly int handScore;
         public Hand(string input)
         {
             Input = input;
-            cards = input.Split(" ").Select(ci => new Card(ci)).ToArray();
-            highestCard = cards.Max(c => c.Value);
+            cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Value).ToArray();
+            handScore = CalculateHandScore();
         }
 
         public string Input { get; }
-        public int HighestCard => highestCard;
+        public int Score => handScore;
+
+        private int CalculateHandScore()
+        {
+            var handScore = 0;
+            for (var i = cards.Length; i > 0; i--)
+            {
+                var cardScore = cards[i-1].Value - 2;
+                handScore += cardScore * (int)Math.Pow(13, i);
+            }
+            return handScore;
+        }
     }
 
     public static IEnumerable<string> BestHands(IEnumerable<string> hands)
     {
         var allHands = hands.Select(input => new Hand(input)).ToList();
-        var highestCard = allHands.Max(h => h.HighestCard);
-        return allHands.Where(h => h.HighestCard == highestCard).Select(h => h.Input);
+        var bestScore = allHands.Max(h => h.Score);
+        return allHands.Where(h => h.Score == bestScore).Select(h => h.Input);
     }
 }

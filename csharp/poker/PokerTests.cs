@@ -22,7 +22,7 @@ public class PokerTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void A_tie_has_multiple_winners()
     {
         var hands = new[] { "4D 5S 6S 8D 3C", "2S 4C 7S 9H 10H", "3S 4S 5D 6H JH", "3H 4H 5C 6C JD" };
@@ -31,7 +31,7 @@ public class PokerTests
         Assert.Equal(expected, actual);
     }
 
-    [Fact(Skip = "Remove this Skip property to run this test")]
+    [Fact]
     public void Multiple_hands_with_the_same_high_cards_tie_compares_next_highest_ranked_down_to_last_card()
     {
         var hands = new[] { "3S 5H 6S 8D 7H", "2S 5D 6D 8C 7S" };
