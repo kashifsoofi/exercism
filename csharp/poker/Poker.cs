@@ -14,6 +14,12 @@ public static class Poker
 
     public class Card
     {
+        public Card(int rank, Suit suit)
+        {
+            Rank = rank;
+            Suit = suit;
+        }
+
         public Card(string card)
         {
             Rank = ParseRank(card.Substring(0, card.Length - 1));
@@ -63,14 +69,14 @@ public static class Poker
 
     public class Hand : IComparable<Hand>
     {
-        private readonly Card[] cards;
+        private readonly Card[] rankedCards;
         private readonly HandRank handRank;
 
         public Hand(string input)
         {
             Input = input;
-            cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Rank).ToArray();
-            handRank = GetRank();
+            var cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Rank).ToArray();
+            (handRank, rankedCards) = GetRank(cards);
         }
 
         public string Input { get; }
@@ -86,32 +92,13 @@ public static class Poker
                 return -1;
             }
 
-            if (handRank == HandRank.FullHouse || handRank == HandRank.FourOfAKind)
+            for (var i = 0; i < rankedCards.Length; i++)
             {
-                var cardsInGroup = cards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).Select(g => g.First()).ToList();
-                var otherCardsInGroup = other.cards.GroupBy(c => c.Rank).OrderByDescending(g => g.Count()).Select(g => g.First()).ToList();
-                for (var i = 0; i < cardsInGroup.Count(); i++)
-                {
-                    if (cardsInGroup[i].Rank > otherCardsInGroup[i].Rank)
-                    {
-                        return 1;
-                    }
-                    else if (cardsInGroup[i].Rank < otherCardsInGroup[i].Rank)
-                    {
-                        return -1;
-                    }
-                }
-            }
-
-            for (var i = 4; i >= 0; i--)
-            {
-                var cardRank = handRank == HandRank.Straight && cards[i].Rank == 14 ? 0 : cards[i].Rank;
-                var otherCardRank = handRank == HandRank.Straight && other.cards[i].Rank == 14 ? 0 : other.cards[i].Rank;
-                if (cardRank > otherCardRank)
+                if (rankedCards[i].Rank > other.rankedCards[i].Rank)
                 {
                     return 1;
                 }
-                else if (cardRank < otherCardRank)
+                else if (rankedCards[i].Rank < other.rankedCards[i].Rank)
                 {
                     return -1;
                 }
@@ -120,50 +107,56 @@ public static class Poker
             return 0;
         }
 
-        private HandRank GetRank()
+        private (HandRank, Card[]) GetRank(Card[] cards)
         {
-            var counts = cards.GroupBy(c => c.Rank).Select(g => g.Count()).OrderByDescending(c => c).ToList();
-            if (counts[0] == 4)
+            var cardsByCount = cards.GroupBy(c => c.Rank).Select(g => new { count = g.Count(), card = g.First() } ).OrderByDescending(c => c.count).ThenByDescending(c => c.card.Rank).ToList();
+            var rankedCards = cardsByCount.Select(c => c.card).ToArray();
+            if (cardsByCount[0].count == 4)
             {
-                return HandRank.FourOfAKind;
+                return (HandRank.FourOfAKind, rankedCards);
             }
 
-            if (counts[0] == 3 && counts[1] == 2)
+            if (cardsByCount[0].count == 3 && cardsByCount[1].count == 2)
             {
-                return HandRank.FullHouse;
+                return (HandRank.FullHouse, rankedCards);
             }
 
-            if (counts[0] == 3)
+            if (cardsByCount[0].count == 3)
             {
-                return HandRank.ThreeOfAKind;
+                return (HandRank.ThreeOfAKind, rankedCards);
             }
 
-            if (counts[0] == 2 && counts[1] == 2)
+            if (cardsByCount[0].count == 2 && cardsByCount[1].count == 2)
             {
-                return HandRank.TwoPairs;
+                return (HandRank.TwoPairs, rankedCards);
             }
 
-            if (counts.Count == 4)
+            if (cardsByCount.Count == 4)
             {
-                return HandRank.Pair;
+                return (HandRank.Pair, rankedCards);
             }
 
             var isFlush = cards.GroupBy(c => c.Suit).Count() == 1;
-            var isStraight = (cards[4].Rank == 14 && cards[3].Rank == 5) || (cards[4].Rank - cards[0].Rank == 4);
+            var isStraight = (rankedCards[0].Rank == 14 && rankedCards[1].Rank == 5) || (rankedCards[0].Rank - rankedCards[4].Rank == 4);
+            if (isStraight && rankedCards[0].Rank == 14)
+            {
+                rankedCards[0] = new Card(1, rankedCards[0].Suit);
+            }
+
             if (isStraight && isFlush)
             {
-                return HandRank.StraightFlush;
+                return (HandRank.StraightFlush, rankedCards);
             }
             else if (isStraight)
             {
-                return HandRank.Straight;
+                return (HandRank.Straight, rankedCards);
             }
             else if (isFlush)
             {
-                return HandRank.Flush;
+                return (HandRank.Flush, rankedCards);
             }
 
-            return HandRank.HighCard;
+            return (HandRank.HighCard, rankedCards);
         }
     }
 
