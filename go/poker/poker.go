@@ -3,7 +3,6 @@ package poker
 import (
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,9 +37,9 @@ func newCard(c string) (*card, error) {
 	return &card{rank: rank, suit: suit}, nil
 }
 
-func parseCardRank(card string) (int, error) {
+func parseCardRank(input string) (int, error) {
 	var rank int
-	switch card {
+	switch input {
 	case "J":
 		rank = 11
 	case "Q":
@@ -50,9 +49,9 @@ func parseCardRank(card string) (int, error) {
 	case "A":
 		rank = 14
 	default:
-		parsedValue, err := strconv.Atoi(card)
+		parsedValue, err := strconv.Atoi(input)
 		if err != nil || parsedValue < 2 || parsedValue > 10 {
-			return 0, errors.New(fmt.Sprintf("%v is an invalid card rank", card))
+			return 0, fmt.Errorf("%v is an invalid card rank", input)
 		}
 		rank = parsedValue
 	}
@@ -71,15 +70,29 @@ func parseSuit(input rune) (s suit, err error) {
 	case '♧':
 		s = Spade
 	default:
-		err = errors.New(fmt.Sprintf("%c is an invalid suit", input))
+		err = fmt.Errorf("%c is an invalid suit", input)
 	}
 	return
 }
 
+type handRank int
+
+const (
+	HighCard handRank = iota
+	Pair
+	TwoPairs
+	ThreeOfAKind
+	Straight
+	Flush
+	FullHouse
+	FourOfAKind
+	StraightFlush
+)
+
 type hand struct {
-	input string
-	cards []*card
-	score float64
+	input            string
+	handRank         handRank
+	orderedCardRanks []int
 }
 
 func newHand(input string) (*hand, error) {
@@ -105,38 +118,146 @@ func newHand(input string) (*hand, error) {
 		return cards[i].rank < cards[j].rank
 	})
 
-	score := calculateHandScore(cards)
+	handRank, cardRanks := getHandAndCardRanks(cards)
 
-	return &hand{input: input, cards: cards, score: score}, nil
+	return &hand{input: input, handRank: handRank, orderedCardRanks: cardRanks}, nil
 }
 
-func calculateHandScore(cards []*card) float64 {
-	score := 0.0
-	for i, c := range cards {
-		score += (float64(c.rank) - 2) * math.Pow(13, float64(i))
+func getHandAndCardRanks(cards []*card) (handRank, []int) {
+	counts, cardRanks := getCountsAndCardRanks(cards)
+
+	if counts[0] == 4 {
+		return FourOfAKind, cardRanks
 	}
 
-	return score / 402234
+	if counts[0] == 3 && counts[1] == 2 {
+		return FullHouse, cardRanks
+	}
+
+	if counts[0] == 3 {
+		return ThreeOfAKind, cardRanks
+	}
+
+	if counts[0] == 2 && counts[1] == 2 {
+		return TwoPairs, cardRanks
+	}
+
+	if len(counts) == 4 {
+		return Pair, cardRanks
+	}
+
+	var isFlush = true
+	suit := cards[0].suit
+	for i := 1; i < len(cards); i++ {
+		if cards[i].suit != suit {
+			isFlush = false
+			break
+		}
+	}
+	var isStraight = (cardRanks[0]-cardRanks[4] == 4) || (cardRanks[0] == 14 && cardRanks[1] == 5)
+	if isStraight && cardRanks[0] == 14 {
+		cardRanks[0] = 1
+	}
+
+	if isStraight && isFlush {
+		return StraightFlush, cardRanks
+	}
+
+	if isStraight {
+		return Straight, cardRanks
+	}
+
+	if isFlush {
+		return Flush, cardRanks
+	}
+
+	return HighCard, cardRanks
 }
 
+type rankAndCount struct {
+	rank  int
+	count int
+}
+
+func compareRankAndCounts(a, b rankAndCount) bool {
+	if a.count == b.count {
+		return a.rank > b.rank
+	}
+
+	return a.count > b.count
+}
+
+func getCountsAndCardRanks(cards []*card) ([]int, []int) {
+	countsByRank := make(map[int]rankAndCount)
+	for _, c := range cards {
+		countByRank, ok := countsByRank[c.rank]
+		if ok {
+			countByRank.count++
+			countsByRank[c.rank] = countByRank
+		} else {
+			countsByRank[c.rank] = rankAndCount{rank: c.rank, count: 1}
+		}
+	}
+
+	rankAndCounts := make([]rankAndCount, 0)
+	for _, v := range countsByRank {
+		rankAndCounts = append(rankAndCounts, v)
+	}
+
+	sort.Slice(rankAndCounts, func(i, j int) bool {
+		return compareRankAndCounts(rankAndCounts[i], rankAndCounts[j])
+	})
+
+	counts := make([]int, 0)
+	cardRanks := make([]int, 0)
+	for i := 0; i < len(rankAndCounts); i++ {
+		counts = append(counts, rankAndCounts[i].count)
+		cardRanks = append(cardRanks, rankAndCounts[i].rank)
+	}
+
+	return counts, cardRanks
+}
+
+func compareHands(a, b *hand) int {
+	if a.handRank > b.handRank {
+		return 1
+	} else if a.handRank < b.handRank {
+		return -1
+	}
+
+	for i := range a.orderedCardRanks {
+		if a.orderedCardRanks[i] > b.orderedCardRanks[i] {
+			return 1
+		} else if a.orderedCardRanks[i] < b.orderedCardRanks[i] {
+			return -1
+		}
+	}
+
+	return 0
+}
+
+// BestHand given poker hands returns best hands
 func BestHand(inputs []string) ([]string, error) {
 	bestHands := make([]string, 0)
-	hands := make([]*hand, 0)
+	allHands := make([]*hand, 0)
 	for _, input := range inputs {
 		h, err := newHand(input)
 		if err != nil {
 			return bestHands, err
 		}
-		hands = append(hands, h)
+		allHands = append(allHands, h)
 	}
-	sort.Slice(hands, func(i, j int) bool {
-		return hands[i].score > hands[j].score
-	})
 
-	maxScore := hands[0].score
-	for _, h := range hands {
-		if h.score == maxScore {
-			bestHands = append(bestHands, h.input)
+	bestHand := allHands[0]
+	bestHands = append(bestHands, bestHand.input)
+	for i := 1; i < len(allHands); i++ {
+		r := compareHands(allHands[i], bestHand)
+		if r > 0 {
+			bestHands = bestHands[:0]
+			bestHand = allHands[i]
+			bestHands = append(bestHands, bestHand.input)
+		} else if r == 0 {
+			bestHands = append(bestHands, allHands[i].input)
 		}
 	}
 
