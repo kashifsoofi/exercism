@@ -14,24 +14,30 @@ public static class Poker
 
     public class Card
     {
-        public Card(string card)
+        public Card(int rank, Suit suit)
         {
-            Value = ParseValue(card.Substring(0, card.Length - 1));
-            Suit = ParseSuit(card[^1]);
+            Rank = rank;
+            Suit = suit;
         }
 
-        public int Value { get; }
+        public Card(string card)
+        {
+            Rank = ParseRank(card.Substring(0, card.Length - 1));
+            Suit = ParseSuit(card[card.Length - 1]);
+        }
+
+        public int Rank { get; }
         public Suit Suit { get; }
 
-        private int ParseValue(string value)
+        private int ParseRank(string rank)
         {
-            switch (value)
+            switch (rank)
             {
                 case "J": return 11;
                 case "Q": return 12;
                 case "K": return 13;
                 case "A": return 14;
-                default: return int.Parse(value);
+                default: return int.Parse(rank);
             }
         }
 
@@ -48,74 +54,133 @@ public static class Poker
         }
     }
 
-    public class Hand
+    public enum HandRank
     {
-        private readonly Card[] cards;
+        HighCard,
+        Pair,
+        TwoPairs,
+        ThreeOfAKind,
+        Straight,
+        Flush,
+        FullHouse,
+        FourOfAKind,
+        StraightFlush,
+    }
+
+    public class Hand : IComparable<Hand>
+    {
+        private readonly Card[] rankedCards;
+        private readonly HandRank handRank;
 
         public Hand(string input)
         {
             Input = input;
-            cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Value).ToArray();
-            Score = CalculateHandScore();
+            var cards = input.Split(" ").Select(ci => new Card(ci)).OrderBy(c => c.Rank).ToArray();
+            (handRank, rankedCards) = GetRank(cards);
         }
 
         public string Input { get; }
-        public double Score { get; }
 
-        private double CalculateHandScore()
+        public int CompareTo(Hand other)
         {
-            var pair1Value = -1;
-            var pair2Value = -1;
-            for (var i = 0; i < cards.Length - 1; i++)
+            if (handRank > other.handRank)
             {
-                var currentValue = cards[i].Value;
-                var nextValue = cards[i+1].Value;
+                return 1;
+            }
+            else if (handRank < other.handRank)
+            {
+                return -1;
+            }
 
-                if (pair1Value == -1 && currentValue == nextValue)
+            for (var i = 0; i < rankedCards.Length; i++)
+            {
+                if (rankedCards[i].Rank > other.rankedCards[i].Rank)
                 {
-                    pair1Value = currentValue;
-                    continue;
+                    return 1;
                 }
-
-                if (pair2Value == -1 && currentValue != pair1Value && currentValue == nextValue)
+                else if (rankedCards[i].Rank < other.rankedCards[i].Rank)
                 {
-                    pair2Value = currentValue;
-                    continue;
+                    return -1;
                 }
             }
 
-            var handScore = 0.0;
-            for (var i = cards.Length; i > 0; i--)
-            {
-                if (cards[i-1].Value == pair1Value || cards[i-1].Value == pair2Value)
-                {
-                    continue;
-                }
+            return 0;
+        }
 
-                var cardScore = cards[i-1].Value - 2;
-                handScore += cardScore * Math.Pow(13, i);
+        private (HandRank, Card[]) GetRank(Card[] cards)
+        {
+            var cardsByCount = cards.GroupBy(c => c.Rank).Select(g => new { count = g.Count(), card = g.First() } ).OrderByDescending(c => c.count).ThenByDescending(c => c.card.Rank).ToList();
+            var rankedCards = cardsByCount.Select(c => c.card).ToArray();
+            if (cardsByCount[0].count == 4)
+            {
+                return (HandRank.FourOfAKind, rankedCards);
             }
 
-            handScore /= 433175;
-
-            if (pair1Value != -1)
+            if (cardsByCount[0].count == 3 && cardsByCount[1].count == 2)
             {
-                handScore += 100 + pair1Value / 14.0 * 50;
+                return (HandRank.FullHouse, rankedCards);
             }
 
-            if (pair2Value != -1)
+            if (cardsByCount[0].count == 3)
             {
-                handScore += 100 + pair2Value / 14.0 * 50;
+                return (HandRank.ThreeOfAKind, rankedCards);
             }
 
-            return handScore;
+            if (cardsByCount[0].count == 2 && cardsByCount[1].count == 2)
+            {
+                return (HandRank.TwoPairs, rankedCards);
+            }
+
+            if (cardsByCount.Count == 4)
+            {
+                return (HandRank.Pair, rankedCards);
+            }
+
+            var isFlush = cards.GroupBy(c => c.Suit).Count() == 1;
+            var isStraight = (rankedCards[0].Rank == 14 && rankedCards[1].Rank == 5) || (rankedCards[0].Rank - rankedCards[4].Rank == 4);
+            if (isStraight && rankedCards[0].Rank == 14)
+            {
+                rankedCards[0] = new Card(1, rankedCards[0].Suit);
+            }
+
+            if (isStraight && isFlush)
+            {
+                return (HandRank.StraightFlush, rankedCards);
+            }
+            else if (isStraight)
+            {
+                return (HandRank.Straight, rankedCards);
+            }
+            else if (isFlush)
+            {
+                return (HandRank.Flush, rankedCards);
+            }
+
+            return (HandRank.HighCard, rankedCards);
         }
     }
 
     public static IEnumerable<string> BestHands(IEnumerable<string> hands)
     {
         var allHands = hands.Select(input => new Hand(input)).ToList();
-        var bestScore = allHands.Max(h => h.Score);
-        return allHands.Where(h => h.Score == bestScore).Select(h => h.Input);
+        allHands.Sort((x, y) => x.CompareTo(y));
+        var bestHand = allHands.First();
+        var bestHands = new List<Hand>() { bestHand };
+        for (var i = 1; i < allHands.Count; i++)
+        {
+            var result = allHands[i].CompareTo(bestHand);
+            if (result > 0)
+            {
+                bestHands.Clear();
+                bestHand = allHands[i];
+                bestHands.Add(bestHand);
+            }
+            else if (result == 0)
+            {
+                bestHands.Add(allHands[i]);
+            }
+        }
+
+        return bestHands.Select(h => h.Input).ToArray();
     }
 }
