@@ -57,7 +57,6 @@ fn test_full() {
 }
 
 #[test]
-#[ignore]
 fn test_three_pieces_modernized() {
     let input = vec!["pin", "gun", "soldier", "battle"];
     let expected = vec![

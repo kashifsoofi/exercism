@@ -75,7 +75,6 @@ fn test_negative_hour_roll_over_continuously() {
 }
 
 #[test]
-#[ignore]
 fn test_negative_minutes() {
     assert_eq!(Clock::new(1, -40).to_string(), "00:20");
 }
