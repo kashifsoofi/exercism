@@ -348,3 +348,14 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Scala
+*.class
+*.log
+
+# sbt
+# (may want to keep parts of 'project')
+bin/
+project/
+target/
+build/
